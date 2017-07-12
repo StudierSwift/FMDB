@@ -18,7 +18,7 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    [[BasicDatabase shareDatabase] creatTableWithName:@"student" model:[Student class]];
+    [[BasicDatabase shareDatabase] creatTableWithModel:[Student class]];
 }
 
 
@@ -26,8 +26,10 @@
  增
  */
 - (IBAction)addDatas{
-    
-    NSLog(@"增");
+    Student *stu = [[Student alloc] init];
+    stu.name = @"zhangsan";
+    stu.friends = @[@"lisi",@"wangwu"];
+    [[BasicDatabase shareDatabase] insetModelData:stu];
 }
 
 /**

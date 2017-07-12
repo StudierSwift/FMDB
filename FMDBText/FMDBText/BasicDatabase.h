@@ -7,11 +7,9 @@
 //
 
 #import <Foundation/Foundation.h>
-#import "FMDatabaseQueue.h"
 
 @interface BasicDatabase : NSObject
 
-@property (nonatomic, strong, readonly) FMDatabaseQueue *dbQueue;
 
 /**
  单例方法
@@ -25,13 +23,13 @@
  */
 - (NSString *)dbPath;
 
-
 /**
- 创建表
-
- @param tableName 表名称
+ 创建数据库
+ 
  @param model 数据模型
  */
-- (void)creatTableWithName:(NSString *)tableName model:(Class)model;
+- (void)creatTableWithModel:(Class)model;
+
+- (void)insetModelData:(id)model;
 
 @end

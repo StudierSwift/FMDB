@@ -7,8 +7,15 @@
 //
 
 #import "BasicDatabase.h"
-#import <objc/runtime.h>
 #import "FMDB.h"
+#import "FMDatabaseQueue.h"
+#import <objc/runtime.h>
+
+@interface BasicDatabase ()
+
+@property (nonatomic, strong, readonly) FMDatabaseQueue *dbQueue;
+
+@end
 
 @implementation BasicDatabase
 
@@ -82,38 +89,61 @@ static BasicDatabase *_instance;
 }
 
 
-- (void)creatTableWithName:(NSString *)tableName model:(Class)model{
+/**
+ 创建数据库
+
+ @param model 数据模型
+ */
+- (void)creatTableWithModel:(Class)model{
     [self.dbQueue inDatabase:^(FMDatabase *db) {
         if ([db open]) {
             
-            NSDictionary *dict = [self getProperties_apsWithModel:[model new]];
-            NSLog(@"%@",dict);
+            NSMutableString *tempStr = [NSMutableString string];
+            for (NSString *propertyStr in [self getAllPropertiesWithModel:model]) {
+                [tempStr appendFormat:@"%@ TEXT,",propertyStr];
+            }
+            if (tempStr.length) {
+                tempStr = [[tempStr substringToIndex:tempStr.length-1] mutableCopy];
+            }
+            NSString *sqlStr = [NSString stringWithFormat:@"CREATE TABLE IF NOT EXISTS t_%@ (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,%@)", NSStringFromClass(model),tempStr];
             
-            
-//            BOOL flag = [db executeUpdate:@"create table if not exists t_chatmessagelist (\
-//                         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,\
-//                         holder         INTEGER,\
-//                         messageid      INTEGER,\
-//                         seqno          INTEGER,\
-//                         userid         INTEGER,\
-//                         icon           TEXT,\
-//                         name           TEXT,\
-//                         time           TEXT,\
-//                         type           INTEGER,\
-//                         text           TEXT,\
-//                         datadevice     TEXT,\
-//                         sosid          INTEGER,\
-//                         pictureModel   BLOB,\
-//                         recordModel    BLOB,\
-//                         videoModel     BLOB,\
-//                         messageMonitor BLOB,\
-//                         doclst         BLOB,\
-//                         state          INTEGER,\
-//                         specialMessage INTEGER,\
-//                         specialContent TEXT);"];
+            BOOL flag = [db executeUpdate:sqlStr];
+            if (flag) {
+                NSLog(@"创建t_%@表成功",NSStringFromClass(model));
+            }else{
+                NSLog(@"创建t_%@表失败",NSStringFromClass(model));
+            }
         }else{
             NSLog(@"数据库打开失败");
         }
+    }];
+}
+
+- (void)insetModelData:(id)model{
+    [self.dbQueue inDeferredTransaction:^(FMDatabase *db, BOOL *rollback) {
+        NSMutableString *tempStr1 = [NSMutableString string];
+        NSMutableString *tempStr2 = [NSMutableString string];
+        for (NSString *propertyStr in [self getAllPropertiesWithModel:[model class]]) {
+            [tempStr1 appendFormat:@"%@,",propertyStr];
+            [tempStr2 appendString:@"?,"];
+        }
+        if (tempStr1.length) {
+            tempStr1 = [[tempStr1 substringToIndex:tempStr1.length - 1] mutableCopy];
+        }
+        if (tempStr2.length) {
+            tempStr2 = [[tempStr2 substringToIndex:tempStr2.length - 1] mutableCopy];
+        }
+        NSString *sqlStr = [NSString stringWithFormat:@"INSERT INTO t_%@ (%@) VALUES (%@);",NSStringFromClass([model class]),tempStr1,tempStr2];
+        NSLog(@"%@",sqlStr);
+        
+        
+        BOOL success =  [db executeUpdate:sqlStr];
+        if (success) {
+            NSLog(@"保存数据成功");
+        }else{
+            NSLog(@"保存数据失败");
+        }
+
     }];
 }
 
